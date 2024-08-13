@@ -21,9 +21,17 @@ class TesterWebViewSaveState(val context: Context, val onClose:() -> Unit) : Pop
         contentView = activityBinding.root
         width = ViewGroup.LayoutParams.MATCH_PARENT
         height = ViewGroup.LayoutParams.MATCH_PARENT
-        isFocusable = true // 允许获取焦点
+        isFocusable = false // 允许获取焦点
         initWebView()
         initListener()
+    }
+
+    fun handleBackPressed() {
+        if (activityBinding.webView.canGoBack()) {
+            activityBinding.webView.goBack()
+        } else {
+            this@TesterWebViewSaveState.onClose()
+        }
     }
 
     private fun initWebView() {
@@ -39,7 +47,6 @@ class TesterWebViewSaveState(val context: Context, val onClose:() -> Unit) : Pop
                 webView.settings.displayZoomControls = false
                 webView.settings.useWideViewPort = true
                 webView.settings.loadWithOverviewMode = true
-                webView.settings.builtInZoomControls = true
                 webView.webChromeClient = WebChromeClient()
                 webView.loadUrl(iLastUrl)
                 webView.webViewClient = object : WebViewClient() {
@@ -54,13 +61,13 @@ class TesterWebViewSaveState(val context: Context, val onClose:() -> Unit) : Pop
     private fun initListener() {
         activityBinding.apply {
             ivClose.setOnClickListener {
-                this@TesterWebViewSaveState.onClose?.let { it1 -> it1() }
+                this@TesterWebViewSaveState.onClose()
             }
             ivBack.setOnClickListener {
                 if (webView.canGoBack()) {
                     webView.goBack()
                 } else {
-                    this@TesterWebViewSaveState.dismiss()
+                    this@TesterWebViewSaveState.onClose()
                 }
             }
 

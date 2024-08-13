@@ -1,6 +1,5 @@
 package com.example.testerfloatingwebview
 
-
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
@@ -8,8 +7,6 @@ import androidx.appcompat.app.AppCompatActivity
 import androidx.core.view.isVisible
 import com.example.testerfloatingwebview.databinding.ActivityMainBinding
 import kotlin.math.absoluteValue
-
-
 
 class MainActivity : AppCompatActivity() {
 
@@ -30,6 +27,17 @@ class MainActivity : AppCompatActivity() {
         setContentView(binding.root)
 
         setupFloatingActionButton()
+    }
+
+
+
+
+    override fun onBackPressed() {
+        if (webViewPopup != null && webViewPopup?.isShowing == true) {
+            webViewPopup?.handleBackPressed()
+        } else {
+            super.onBackPressed()
+        }
     }
 
     private fun setupFloatingActionButton() {
