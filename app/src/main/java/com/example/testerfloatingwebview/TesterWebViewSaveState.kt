@@ -17,7 +17,6 @@ class TesterWebViewSaveState(val context: Context, val onClose:() -> Unit) : Pop
 
 
     init {
-        setBackgroundDrawable(null) // 移除默认背景
         contentView = activityBinding.root
         width = ViewGroup.LayoutParams.MATCH_PARENT
         height = ViewGroup.LayoutParams.MATCH_PARENT

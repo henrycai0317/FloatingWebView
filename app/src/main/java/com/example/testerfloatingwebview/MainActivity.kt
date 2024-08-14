@@ -1,5 +1,6 @@
 package com.example.testerfloatingwebview
 
+import android.annotation.SuppressLint
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
@@ -30,8 +31,6 @@ class MainActivity : AppCompatActivity() {
     }
 
 
-
-
     override fun onBackPressed() {
         if (webViewPopup != null && webViewPopup?.isShowing == true) {
             webViewPopup?.handleBackPressed()
@@ -40,6 +39,7 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
+    @SuppressLint("ClickableViewAccessibility")
     private fun setupFloatingActionButton() {
         binding.fab.apply {
             isFocusable = true
@@ -55,9 +55,19 @@ class MainActivity : AppCompatActivity() {
                     }
 
                     MotionEvent.ACTION_MOVE -> {
+                        // 計算可移動區域的邊界
+                        val newX = (motionEvent.rawX + dX).coerceIn(
+                            0f,
+                            (binding.root.width - view.width).toFloat()
+                        )
+                        val newY = (motionEvent.rawY + dY).coerceIn(
+                            0f,
+                            (binding.root.height - view.height).toFloat()
+                        )
+
                         view.animate()
-                            .x(motionEvent.rawX + dX)
-                            .y(motionEvent.rawY + dY)
+                            .x(newX)
+                            .y(newY)
                             .setDuration(0)
                             .start()
                         return@setOnTouchListener true
@@ -67,7 +77,10 @@ class MainActivity : AppCompatActivity() {
                         val deltaX = motionEvent.rawX - initialX
                         val deltaY = motionEvent.rawY - initialY
 
-                        // 如果移动距离很小，触发点击事件
+                        // 恢復Z軸位置
+                        view.animate().z(0f).setDuration(0).start()
+
+                        // 如果移動距離很小，觸發點擊事件
                         if (deltaX.absoluteValue < 10 && deltaY.absoluteValue < 10) {
                             toggleWebViewPopup()
                         }
@@ -78,10 +91,10 @@ class MainActivity : AppCompatActivity() {
                 }
             }
         }
-
     }
 
     private fun toggleWebViewPopup() {
+        binding.fab.visibility = View.GONE
         if (webViewPopup == null) {
             // 检查 Activity 是否仍然有效
             if (!isFinishing && !isDestroyed) {
@@ -99,24 +112,46 @@ class MainActivity : AppCompatActivity() {
     }
 
     private fun minimizePopup() {
-        // 通过缩放动画缩小 PopupWindow 并将其标记为缩小状态
-        webViewPopup?.contentView?.animate()?.scaleX(0.3f)?.scaleY(0.3f)?.setDuration(300)
-            ?.withEndAction {
-                webViewPopup?.dismiss() // 隐藏 PopupWindow
-                isPopupMinimized = true
-                binding.fab.isVisible = true // 显示 FloatingActionButton
-            }?.start()
+        webViewPopup?.contentView?.apply {
+            // 設定縮放中心為FloatingActionButton的當前位置
+            pivotX = binding.fab.x + binding.fab.width / 2
+            pivotY = binding.fab.y + binding.fab.height / 2
+            translationY = 0f // 确保位置复位
+
+            animate()
+                .scaleX(0f)
+                .scaleY(0f)
+                .setDuration(300)
+                .withEndAction {
+                    webViewPopup?.dismiss() // 隱藏 PopupWindow
+                    isPopupMinimized = true
+                    binding.fab.isVisible = true // 顯示 FloatingActionButton
+                }.start()
+        }
     }
 
     private fun restorePopup() {
-        // 恢复缩小的 PopupWindow 并将其标记为非缩小状态
-        webViewPopup?.let {
-            it.showAtLocation(binding.root, android.view.Gravity.CENTER, 0, 0)
-            it.contentView?.apply {
-                scaleX = 0.3f
-                scaleY = 0.3f
-                translationY = 0f // 确保位置复位
-                animate()?.scaleX(1f)?.scaleY(1f)?.translationY(0f)?.setDuration(300)?.start()
+        webViewPopup?.let { popup ->
+            // 顯示PopupWindow並設置初始縮放和位置
+            popup.showAtLocation(
+                binding.root,
+                android.view.Gravity.NO_GRAVITY,
+                binding.fab.x.toInt(),
+                binding.fab.y.toInt()
+            )
+
+            popup.contentView?.apply {
+                scaleX = 0f
+                scaleY = 0f
+                // 設定縮放中心為FloatingActionButton的當前位置
+                pivotX = binding.fab.x + binding.fab.width / 2
+                pivotY = binding.fab.y + binding.fab.height / 2
+
+                animate()
+                    .scaleX(1f)
+                    .scaleY(1f)
+                    .setDuration(300)
+                    .start()
             }
             isPopupMinimized = false
         }
@@ -126,36 +161,32 @@ class MainActivity : AppCompatActivity() {
         popup.contentView.setOnTouchListener(object : View.OnTouchListener {
             private var initialY: Float = 0f
             private var downY: Float = 0f
-            private var isLongPressing = false
 
             override fun onTouch(view: View, motionEvent: MotionEvent): Boolean {
                 when (motionEvent.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {
                         initialY = motionEvent.rawY
                         downY = motionEvent.rawY
-                        isLongPressing = true
-
-                        // 检查长按
-                        view.postDelayed({
-                            if (isLongPressing) {
-                                // 长按开始，用户可以拖动缩小
-                            }
-                        }, 500)
-
                         return true
                     }
 
                     MotionEvent.ACTION_MOVE -> {
                         val deltaY = motionEvent.rawY - initialY
-
-                        if (deltaY > 0 && isLongPressing) {
-                            popup.contentView.translationY = deltaY
+                        popup.contentView.apply {
+                            if (deltaY > 0) {
+                                if (deltaY > 300) {
+                                    scaleX = 0.8f
+                                    scaleY = 0.8f
+                                    pivotY = motionEvent.rawY
+                                    pivotX = motionEvent.rawX
+                                }
+                                translationY = deltaY
+                            }
                         }
                         return true
                     }
 
                     MotionEvent.ACTION_UP -> {
-                        isLongPressing = false
                         val deltaY = motionEvent.rawY - downY
 
                         // 如果长按后下滑距离足够大，则缩小 PopupWindow
@@ -163,7 +194,13 @@ class MainActivity : AppCompatActivity() {
                             minimizePopup()
                         } else {
                             // 否则回弹回初始位置
-                            popup.contentView.animate().translationY(0f).setDuration(200).start()
+                            popup.contentView.apply {
+                                scaleX = 1f
+                                scaleY = 1f
+                                pivotY = 0f
+                                pivotX = 0f
+                                animate().translationY(0f).setDuration(200).start()
+                            }
                         }
                         return true
                     }
