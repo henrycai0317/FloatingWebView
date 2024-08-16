@@ -39,7 +39,6 @@ class MainActivity : AppCompatActivity() {
         binding.apply {
             setupFloatingActionButton()
             btLaunchWebView.setOnClickListener {
-
                 toggleWebViewPopup()
             }
         }
@@ -62,16 +61,14 @@ class MainActivity : AppCompatActivity() {
             setOnTouchListener { fabView, motionEvent ->
                 when (motionEvent.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {
-                        //記住一開始險
-                        if (isFirstOpenWebView) {
-                            initFabIconOffsetX = motionEvent.rawX
-                            initFabIconOffsetY = motionEvent.rawY
-                            isFirstOpenWebView = false
-                        }
                         dX = fabView.x - motionEvent.rawX
                         dY = fabView.y - motionEvent.rawY
                         initialX = motionEvent.rawX
                         initialY = motionEvent.rawY
+
+                        // Start stretching the FAB
+                        fabView.animate().scaleX(1.2f).scaleY(1.2f).setDuration(150).start()
+
                         return@setOnTouchListener true
                     }
 
@@ -79,7 +76,6 @@ class MainActivity : AppCompatActivity() {
                         binding.apply {
                             closeIconView.visibility = View.VISIBLE
 
-                            // 計算可移動區域的邊界
                             val newX = (motionEvent.rawX + dX).coerceIn(
                                 0f, (root.width - fabView.width).toFloat()
                             )
@@ -87,7 +83,6 @@ class MainActivity : AppCompatActivity() {
                                 0f, (root.height - fabView.height).toFloat()
                             )
 
-                            // 使用抽出的函數來判斷相交
                             if (isViewIntersecting(fabView, closeIconView, newX, newY)) {
                                 closeIconView.setImageDrawable(
                                     ContextCompat.getDrawable(
@@ -103,19 +98,17 @@ class MainActivity : AppCompatActivity() {
                                     )
                                 )
                             }
-                            // 更新fab的位置
                             fabView.animate().x(newX).y(newY).setDuration(0).start()
                         }
                         return@setOnTouchListener true
                     }
-
 
                     MotionEvent.ACTION_UP -> {
                         binding.apply {
                             closeIconView.visibility = View.GONE
                             val deltaX = motionEvent.rawX - initialX
                             val deltaY = motionEvent.rawY - initialY
-                            // 計算可移動區域的邊界
+
                             val newX = (motionEvent.rawX + dX).coerceIn(
                                 0f, (root.width - fabView.width).toFloat()
                             )
@@ -126,11 +119,13 @@ class MainActivity : AppCompatActivity() {
                             if (isViewIntersecting(fabView, closeIconView, newX, newY)) {
                                 webViewPopup = null
                                 fab.visibility = View.GONE
-
                             }
-                            // 恢復Z軸位置
+
+                            // Shrink back to original size
+                            fabView.animate().scaleX(1f).scaleY(1f).setDuration(150).start()
+
                             fabView.animate().z(0f).setDuration(0).start()
-                            // 如果移動距離很小，觸發點擊事件
+
                             if (deltaX.absoluteValue < 10 && deltaY.absoluteValue < 10) {
                                 toggleWebViewPopup()
                             }
@@ -143,6 +138,7 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
 
     /** 判斷兩個圖片是否相交*/
     private fun isViewIntersecting(
@@ -235,13 +231,17 @@ class MainActivity : AppCompatActivity() {
                     MotionEvent.ACTION_DOWN -> {
                         initialY = motionEvent.rawY
                         downY = motionEvent.rawY
+
+                        // Start stretching the popup
+                        view.animate().scaleX(1.05f).scaleY(1.05f).setDuration(150).start()
+
                         return true
                     }
 
                     MotionEvent.ACTION_MOVE -> {
                         val deltaY = motionEvent.rawY - initialY
-                        popup.contentView.apply {
-                            if (deltaY > 0) {
+                        if (deltaY > 0) {
+                            popup.contentView.apply {
                                 if (deltaY > 300) {
                                     scaleX = 0.8f
                                     scaleY = 0.8f
@@ -257,18 +257,13 @@ class MainActivity : AppCompatActivity() {
                     MotionEvent.ACTION_UP -> {
                         val deltaY = motionEvent.rawY - downY
 
-                        // 如果长按后下滑距离足够大，则缩小 PopupWindow
+                        // Shrink back when released
+                        view.animate().scaleX(1f).scaleY(1f).setDuration(150).start()
+
                         if (deltaY > 300) {
                             minimizePopup()
                         } else {
-                            // 否则回弹回初始位置
-                            popup.contentView.apply {
-                                scaleX = 1f
-                                scaleY = 1f
-                                pivotY = 0f
-                                pivotX = 0f
-                                animate().translationY(0f).setDuration(200).start()
-                            }
+                            popup.contentView.animate().translationY(0f).setDuration(200).start()
                         }
                         return true
                     }
@@ -278,6 +273,7 @@ class MainActivity : AppCompatActivity() {
             }
         })
     }
+
 }
 
 
