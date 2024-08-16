@@ -1,10 +1,12 @@
 package com.example.testerfloatingwebview
 
 import android.annotation.SuppressLint
+import android.graphics.RectF
 import android.os.Bundle
 import android.view.MotionEvent
 import android.view.View
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.content.ContextCompat
 import androidx.core.view.isVisible
 import com.example.testerfloatingwebview.databinding.ActivityMainBinding
 import kotlin.math.absoluteValue
@@ -14,6 +16,9 @@ class MainActivity : AppCompatActivity() {
     private lateinit var binding: ActivityMainBinding
     private var webViewPopup: TesterWebViewSaveState? = null
     private var isPopupMinimized = false
+    private var initFabIconOffsetX: Float = 0f //原始浮動按鈕一開始顯示X軸位置
+    private var initFabIconOffsetY: Float = 0f //原始浮動按鈕一開始顯示Y軸位置
+    private var isFirstOpenWebView = true
 
     private var dX: Float = 0f
     private var dY: Float = 0f
@@ -26,8 +31,18 @@ class MainActivity : AppCompatActivity() {
         // 初始化ViewBinding
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        initView()
 
-        setupFloatingActionButton()
+    }
+
+    private fun initView() {
+        binding.apply {
+            setupFloatingActionButton()
+            btLaunchWebView.setOnClickListener {
+
+                toggleWebViewPopup()
+            }
+        }
     }
 
 
@@ -44,45 +59,81 @@ class MainActivity : AppCompatActivity() {
         binding.fab.apply {
             isFocusable = true
             isClickable = true
-            setOnTouchListener { view, motionEvent ->
+            setOnTouchListener { fabView, motionEvent ->
                 when (motionEvent.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {
-                        dX = view.x - motionEvent.rawX
-                        dY = view.y - motionEvent.rawY
+                        //記住一開始險
+                        if (isFirstOpenWebView) {
+                            initFabIconOffsetX = motionEvent.rawX
+                            initFabIconOffsetY = motionEvent.rawY
+                            isFirstOpenWebView = false
+                        }
+                        dX = fabView.x - motionEvent.rawX
+                        dY = fabView.y - motionEvent.rawY
                         initialX = motionEvent.rawX
                         initialY = motionEvent.rawY
                         return@setOnTouchListener true
                     }
 
                     MotionEvent.ACTION_MOVE -> {
-                        // 計算可移動區域的邊界
-                        val newX = (motionEvent.rawX + dX).coerceIn(
-                            0f,
-                            (binding.root.width - view.width).toFloat()
-                        )
-                        val newY = (motionEvent.rawY + dY).coerceIn(
-                            0f,
-                            (binding.root.height - view.height).toFloat()
-                        )
+                        binding.apply {
+                            closeIconView.visibility = View.VISIBLE
 
-                        view.animate()
-                            .x(newX)
-                            .y(newY)
-                            .setDuration(0)
-                            .start()
+                            // 計算可移動區域的邊界
+                            val newX = (motionEvent.rawX + dX).coerceIn(
+                                0f, (root.width - fabView.width).toFloat()
+                            )
+                            val newY = (motionEvent.rawY + dY).coerceIn(
+                                0f, (root.height - fabView.height).toFloat()
+                            )
+
+                            // 使用抽出的函數來判斷相交
+                            if (isViewIntersecting(fabView, closeIconView, newX, newY)) {
+                                closeIconView.setImageDrawable(
+                                    ContextCompat.getDrawable(
+                                        this@MainActivity,
+                                        R.drawable.year_review_cancel_red
+                                    )
+                                )
+                            } else {
+                                closeIconView.setImageDrawable(
+                                    ContextCompat.getDrawable(
+                                        this@MainActivity,
+                                        R.drawable.year_review_cancel_black
+                                    )
+                                )
+                            }
+                            // 更新fab的位置
+                            fabView.animate().x(newX).y(newY).setDuration(0).start()
+                        }
                         return@setOnTouchListener true
                     }
 
+
                     MotionEvent.ACTION_UP -> {
-                        val deltaX = motionEvent.rawX - initialX
-                        val deltaY = motionEvent.rawY - initialY
+                        binding.apply {
+                            closeIconView.visibility = View.GONE
+                            val deltaX = motionEvent.rawX - initialX
+                            val deltaY = motionEvent.rawY - initialY
+                            // 計算可移動區域的邊界
+                            val newX = (motionEvent.rawX + dX).coerceIn(
+                                0f, (root.width - fabView.width).toFloat()
+                            )
+                            val newY = (motionEvent.rawY + dY).coerceIn(
+                                0f, (root.height - fabView.height).toFloat()
+                            )
 
-                        // 恢復Z軸位置
-                        view.animate().z(0f).setDuration(0).start()
+                            if (isViewIntersecting(fabView, closeIconView, newX, newY)) {
+                                webViewPopup = null
+                                fab.visibility = View.GONE
 
-                        // 如果移動距離很小，觸發點擊事件
-                        if (deltaX.absoluteValue < 10 && deltaY.absoluteValue < 10) {
-                            toggleWebViewPopup()
+                            }
+                            // 恢復Z軸位置
+                            fabView.animate().z(0f).setDuration(0).start()
+                            // 如果移動距離很小，觸發點擊事件
+                            if (deltaX.absoluteValue < 10 && deltaY.absoluteValue < 10) {
+                                toggleWebViewPopup()
+                            }
                         }
                         return@setOnTouchListener true
                     }
@@ -92,6 +143,30 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    /** 判斷兩個圖片是否相交*/
+    private fun isViewIntersecting(
+        fabIconView: View,
+        closeIconView: View,
+        fabIconOffsetX: Float,
+        fabIconOffsetY: Float
+    ): Boolean {
+        // 計算view1的矩形範圍
+        val rect1 = RectF(
+            fabIconOffsetX, fabIconOffsetY,
+            fabIconOffsetX + fabIconView.width, fabIconOffsetY + fabIconView.height
+        )
+
+        // 計算view2的矩形範圍
+        val rect2 = RectF(
+            closeIconView.x, closeIconView.y,
+            closeIconView.x + closeIconView.width, closeIconView.y + closeIconView.height
+        )
+
+        // 判斷兩個矩形是否相交
+        return RectF.intersects(rect1, rect2)
+    }
+
 
     private fun toggleWebViewPopup() {
         binding.fab.visibility = View.GONE
@@ -118,15 +193,11 @@ class MainActivity : AppCompatActivity() {
             pivotY = binding.fab.y + binding.fab.height / 2
             translationY = 0f // 确保位置复位
 
-            animate()
-                .scaleX(0f)
-                .scaleY(0f)
-                .setDuration(300)
-                .withEndAction {
-                    webViewPopup?.dismiss() // 隱藏 PopupWindow
-                    isPopupMinimized = true
-                    binding.fab.isVisible = true // 顯示 FloatingActionButton
-                }.start()
+            animate().scaleX(0f).scaleY(0f).setDuration(300).withEndAction {
+                webViewPopup?.dismiss() // 隱藏 PopupWindow
+                isPopupMinimized = true
+                binding.fab.isVisible = true // 顯示 FloatingActionButton
+            }.start()
         }
     }
 
@@ -147,11 +218,7 @@ class MainActivity : AppCompatActivity() {
                 pivotX = binding.fab.x + binding.fab.width / 2
                 pivotY = binding.fab.y + binding.fab.height / 2
 
-                animate()
-                    .scaleX(1f)
-                    .scaleY(1f)
-                    .setDuration(300)
-                    .start()
+                animate().scaleX(1f).scaleY(1f).setDuration(300).start()
             }
             isPopupMinimized = false
         }
@@ -162,6 +229,7 @@ class MainActivity : AppCompatActivity() {
             private var initialY: Float = 0f
             private var downY: Float = 0f
 
+            @SuppressLint("ClickableViewAccessibility")
             override fun onTouch(view: View, motionEvent: MotionEvent): Boolean {
                 when (motionEvent.actionMasked) {
                     MotionEvent.ACTION_DOWN -> {

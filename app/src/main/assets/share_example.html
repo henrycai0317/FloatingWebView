@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Android WebView Share Example</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+
+        button {
+            display: block;
+            margin-top: 10px;
+            padding: 10px;
+            font-size: 16px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+
+        button:hover {
+            background-color: #45a049;
+        }
+
+        .section {
+            margin-bottom: 30px;
+        }
+
+        .section h2 {
+            margin-bottom: 10px;
+        }
+
+        .separator {
+            border-bottom: 2px solid #ddd;
+            margin: 20px 0;
+        }
+
+        .content {
+            font-size: 14px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        img {
+            max-width: 100%;
+            height: auto;
+            margin-bottom: 10px;
+        }
+    </style>
+</head>
+<body>
+<h1>WebView Share Example</h1>
+
+<div class="section">
+    <h2>Share Image</h2>
+    <div class="content">
+        <p>Image Preview:</p>
+        <img src="https://techcrunch.com/wp-content/uploads/2021/04/GettyImages-458243847.jpg" alt="Image Preview">
+    </div>
+    <button onclick="shareImage()">Share Image</button>
+    <div class="separator"></div>
+</div>
+
+<div class="section">
+    <h2>Share Multiple (Image and Text)</h2>
+    <div class="content">
+        <p>Image Previews:</p>
+        <img src="https://silver2dream.wordpress.com/wp-content/uploads/2017/07/1474140_orig.png" alt="Image 1 Preview">
+        <img src="https://duet-cdn.vox-cdn.com/thumbor/0x0:2040x1360/2048x1365/filters:focal(1020x680:1021x681):format(webp)/cdn.vox-cdn.com/uploads/chorus_asset/file/24569955/android_guide_art.jpg" alt="Image 2 Preview">
+        <p>Text Content: This is a text to share with images!</p>
+    </div>
+    <button onclick="shareMultiple()">Share Image and Text</button>
+    <div class="separator"></div>
+</div>
+
+<div class="section">
+    <h2>Share Text</h2>
+    <div class="content">
+        <p>Text Content:</p>
+        This is a text content that will be shared with Android.
+    </div>
+    <button onclick="shareText()">Share Text</button>
+</div>
+
+<script>
+    function shareImage() {
+        const imageUrl = "https://techcrunch.com/wp-content/uploads/2021/04/GettyImages-458243847.jpg"; // 替換為實際的圖片URL
+        AndroidTesterIntent.shareContent("image", imageUrl);
+    }
+
+    function shareMultiple() {
+        const imageUrls = [
+            "https://duet-cdn.vox-cdn.com/thumbor/0x0:2040x1360/2048x1365/filters:focal(1020x680:1021x681):format(webp)/cdn.vox-cdn.com/uploads/chorus_asset/file/24569955/android_guide_art.jpg",
+            "https://duet-cdn.vox-cdn.com/thumbor/0x0:2040x1360/2048x1365/filters:focal(1020x680:1021x681):format(webp)/cdn.vox-cdn.com/uploads/chorus_asset/file/24569955/android_guide_art.jpg"
+        ]; // 替換為實際的多個圖片URL
+        const text = "This is a text to share with images!";
+        const combinedContent = imageUrls.join(",") + ";" + text;
+        AndroidTesterIntent.shareContent("multiple", combinedContent);
+    }
+
+    function shareText() {
+        const textContent = "This is a text content that will be shared with Android.";
+        AndroidTesterIntent.shareContent("text", textContent);
+    }
+</script>
+</body>
+</html>

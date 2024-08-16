@@ -1,9 +1,33 @@
-<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent">
 
-    <!-- FloatingActionButton for minimized WebView -->
+    <Button
+        android:id="@+id/btLaunchWebView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginStart="16dp"
+        android:layout_marginTop="30dp"
+        android:text="Launch WebView"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintTop_toTopOf="parent"/>
+
+
+
+    <ImageView
+        android:id="@+id/closeIconView"
+        android:layout_width="50dp"
+        android:layout_height="50dp"
+        android:layout_gravity="bottom|center"
+        android:layout_margin="16dp"
+        android:adjustViewBounds="true"
+        android:src="@drawable/year_review_cancel_black"
+        android:visibility="gone"
+        app:layout_constraintBottom_toBottomOf="parent"
+        app:layout_constraintLeft_toLeftOf="parent"
+        app:layout_constraintRight_toRightOf="parent" />
+
     <ImageView
         android:id="@+id/fab"
         android:layout_width="70dp"
@@ -11,7 +35,10 @@
         android:layout_gravity="bottom|end"
         android:layout_margin="16dp"
         android:adjustViewBounds="true"
-        android:elevation="@dimen/cardview_compat_inset_shadow"
-        android:src="@drawable/android_brand_google_logo_icon" />
+        android:src="@drawable/android_brand_google_logo_icon"
+        android:visibility="invisible"
+        app:layout_constraintRight_toRightOf="parent"
+        app:layout_constraintBottom_toBottomOf="parent"/>
 
-</FrameLayout>
+
+</androidx.constraintlayout.widget.ConstraintLayout>
