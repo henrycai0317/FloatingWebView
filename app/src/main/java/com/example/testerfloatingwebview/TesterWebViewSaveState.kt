@@ -6,87 +6,81 @@ import android.content.Intent
 import android.graphics.Bitmap
 import android.graphics.drawable.Drawable
 import com.bumptech.glide.request.transition.Transition
-
 import android.net.Uri
 import android.util.Base64
 import android.view.LayoutInflater
-import android.view.ViewGroup
 import android.webkit.JavascriptInterface
 import android.webkit.WebChromeClient
 import android.webkit.WebSettings
 import android.webkit.WebView
 import android.webkit.WebViewClient
-import android.widget.PopupWindow
 import android.widget.Toast
+import androidx.cardview.widget.CardView
 import com.bumptech.glide.Glide
 import com.bumptech.glide.request.target.CustomTarget
 import com.example.testerfloatingwebview.databinding.InAppBrowserTesterActivityBinding
 import java.io.ByteArrayOutputStream
 
-class TesterWebViewSaveState(val context: Context, val onClose: () -> Unit) : PopupWindow(context) {
 
-    private val activityBinding: InAppBrowserTesterActivityBinding =
-        InAppBrowserTesterActivityBinding.inflate(LayoutInflater.from(context))
+class TesterWebViewCardView(
+    context: Context,
+    private val onClose: () -> Unit
+) : CardView(context) {
 
-
+    private val binding: InAppBrowserTesterActivityBinding =
+        InAppBrowserTesterActivityBinding.inflate(LayoutInflater.from(context), this, true)
 
     init {
-        contentView = activityBinding.root
-        width = ViewGroup.LayoutParams.MATCH_PARENT
-        height = ViewGroup.LayoutParams.MATCH_PARENT
-        isFocusable = false // 允许获取焦点
+        radius = 16f
+        cardElevation = 8f
+        layoutParams = LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT)
+
         initWebView()
         initListener()
     }
 
     fun handleBackPressed() {
-        if (activityBinding.webView.canGoBack()) {
-            activityBinding.webView.goBack()
+        if (binding.webView.canGoBack()) {
+            binding.webView.goBack()
         } else {
-            this@TesterWebViewSaveState.onClose()
+            onClose()
         }
     }
 
     @SuppressLint("JavascriptInterface")
     private fun initWebView() {
-        activityBinding.apply {
-            // 加载 URL
+        binding.apply {
             val newUrl = "https://pokemongolive.com/?hl=zh_Hant"
-
-            newUrl.let { iLastUrl ->
-                webView.settings.javaScriptEnabled = true
-                webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
-                webView.settings.loadsImagesAutomatically = true
-                webView.settings.builtInZoomControls = false
-                webView.settings.displayZoomControls = false
-                webView.settings.useWideViewPort = true
-                webView.settings.loadWithOverviewMode = true
-                webView.webChromeClient = WebChromeClient()
-                webView.webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView, url: String) {
-                        super.onPageFinished(view, url)
-                    }
+            webView.settings.javaScriptEnabled = true
+            webView.settings.cacheMode = WebSettings.LOAD_NO_CACHE
+            webView.settings.loadsImagesAutomatically = true
+            webView.settings.builtInZoomControls = false
+            webView.settings.displayZoomControls = false
+            webView.settings.useWideViewPort = true
+            webView.settings.loadWithOverviewMode = true
+            webView.webChromeClient = WebChromeClient()
+            webView.webViewClient = object : WebViewClient() {
+                override fun onPageFinished(view: WebView, url: String) {
+                    super.onPageFinished(view, url)
                 }
-                webView.addJavascriptInterface(WebAppInterface(context), "AndroidTesterIntent")
-                // 加載本地 HTML 文件
-                webView.loadUrl("file:///android_asset/share_example.html")
             }
+            webView.addJavascriptInterface(WebAppInterface(context), "AndroidTesterIntent")
+            webView.loadUrl("file:///android_asset/share_example.html")
         }
     }
 
     private fun initListener() {
-        activityBinding.apply {
+        binding.apply {
             ivClose.setOnClickListener {
-                this@TesterWebViewSaveState.onClose()
+                onClose()
             }
             ivBack.setOnClickListener {
-                if (webView.canGoBack()) {
-                    webView.goBack()
+                if (binding.webView.canGoBack()) {
+                    binding.webView.goBack()
                 } else {
-                    this@TesterWebViewSaveState.onClose()
+                    onClose()
                 }
             }
-
         }
     }
 
@@ -96,7 +90,6 @@ class TesterWebViewSaveState(val context: Context, val onClose: () -> Unit) : Po
         fun shareContent(type: String, data: String) {
             when (type) {
                 "image" -> {
-                    // 使用 Glide 處理單張圖片分享的邏輯，下載並轉換為 Base64
                     convertUrlToBase64AndShare(data)
                 }
 
@@ -115,35 +108,22 @@ class TesterWebViewSaveState(val context: Context, val onClose: () -> Unit) : Po
             Glide.with(context)
                 .asBitmap()
                 .load(imageUrl)
-                .override(800, 600)  // 限制圖片的最大尺寸，防止 OOM
+                .override(800, 600)
                 .into(object : CustomTarget<Bitmap>() {
                     override fun onResourceReady(
                         resource: Bitmap,
                         transition: Transition<in Bitmap>?
                     ) {
-                        // 將 Bitmap 轉換為 Base64 字符串
                         val byteArrayOutputStream = ByteArrayOutputStream()
-                        resource.compress(
-                            Bitmap.CompressFormat.JPEG,
-                            50,
-                            byteArrayOutputStream
-                        )  // 壓縮圖片質量
+                        resource.compress(Bitmap.CompressFormat.JPEG, 50, byteArrayOutputStream)
                         val byteArray: ByteArray = byteArrayOutputStream.toByteArray()
                         val base64String = Base64.encodeToString(byteArray, Base64.NO_WRAP)
-
-                        // 將 Base64 字符串轉換為 URI
                         val base64Uri = Uri.parse("data:image/jpeg;base64,$base64String")
-
-                        // 分享圖片
                         shareMedia(base64Uri, "image/*")
                     }
 
-                    override fun onLoadCleared(placeholder: Drawable?) {
-                        // 處理佔位符清理（如果需要）
-                    }
-
+                    override fun onLoadCleared(placeholder: Drawable?) {}
                     override fun onLoadFailed(errorDrawable: Drawable?) {
-                        // 處理加載失敗的情況
                         Toast.makeText(context, "圖片加載失敗", Toast.LENGTH_SHORT).show()
                     }
                 })
@@ -183,7 +163,6 @@ class TesterWebViewSaveState(val context: Context, val onClose: () -> Unit) : Po
             return Pair(uris, text)
         }
     }
-
-
 }
+
 
