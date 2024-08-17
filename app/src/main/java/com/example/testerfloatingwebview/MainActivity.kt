@@ -22,11 +22,18 @@ class MainActivity : AppCompatActivity() {
     private var dY: Float = 0f
     private var initialX: Float = 0f
     private var initialY: Float = 0f
+    private var fabInitialX: Float = 0f  // FAB 初始位置X
+    private var fabInitialY: Float = 0f  // FAB 初始位置Y
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         binding = ActivityMainBinding.inflate(layoutInflater)
         setContentView(binding.root)
+        // 記錄 FAB 初始位置
+        binding.fab.post {
+            fabInitialX = binding.fab.x
+            fabInitialY = binding.fab.y
+        }
         initCardWebView()
         initView()
     }
@@ -35,12 +42,15 @@ class MainActivity : AppCompatActivity() {
         binding.apply {
             setupFloatingActionButton()
             btLaunchWebView.setOnClickListener {
-                toggleWebViewCardView()
+                toggleWebViewCardView(btLaunchWebView)
             }
         }
     }
 
     private fun initCardWebView() {
+        // 在設置為 GONE 之前重置位置
+        binding.fab.x = fabInitialX
+        binding.fab.y = fabInitialY
         webViewCardView = TesterWebViewCardView(this@MainActivity) {
             minimizeCardView()
         }.apply {
@@ -70,7 +80,7 @@ class MainActivity : AppCompatActivity() {
                         dY = fabView.y - motionEvent.rawY
                         initialX = motionEvent.rawX
                         initialY = motionEvent.rawY
-                        fabView.animate().scaleX(1.2f).scaleY(1.2f).setDuration(150).start()
+                        fabView.animate().scaleX(1.2f).scaleY(1.2f).setDuration(150).start() //按鈕浮動動畫效果
                         return@setOnTouchListener true
                     }
 
@@ -128,7 +138,7 @@ class MainActivity : AppCompatActivity() {
                             fabView.animate().z(0f).setDuration(0).start()
 
                             if (deltaX.absoluteValue < 10 && deltaY.absoluteValue < 10) {
-                                toggleWebViewCardView()
+                                toggleWebViewCardView(fab)
                             }
                         }
                         return@setOnTouchListener true
@@ -140,21 +150,21 @@ class MainActivity : AppCompatActivity() {
         }
     }
 
-    private fun toggleWebViewCardView() {
+    private fun toggleWebViewCardView(pClickView: View) {
         if (webViewCardView == null) {
             initCardWebView()
         }
 
         if (webViewCardView?.visibility == View.GONE) {
-            expandCardView()
+            expandCardView(pClickView)
         } else if (isCardMinimized) {
-            restoreCardView()
+            restoreCardView(pClickView)
         }
     }
 
-    private fun expandCardView() {
+    private fun expandCardView(pClickView: View) {
         val transform = MaterialContainerTransform().apply {
-            startView = binding.fab
+            startView = pClickView
             endView = webViewCardView
             addTarget(webViewCardView)
             duration = 500L
@@ -185,8 +195,8 @@ class MainActivity : AppCompatActivity() {
         isCardMinimized = true
     }
 
-    private fun restoreCardView() {
-        expandCardView()
+    private fun restoreCardView(pClickView: View) {
+        expandCardView(pClickView)
     }
 
     @SuppressLint("ClickableViewAccessibility")
@@ -200,7 +210,7 @@ class MainActivity : AppCompatActivity() {
                     MotionEvent.ACTION_DOWN -> {
                         initialY = motionEvent.rawY
                         downY = motionEvent.rawY
-                        view.animate().scaleX(1.05f).scaleY(1.05f).setDuration(150).start()
+                        view.animate().scaleX(1.05f).scaleY(1.05f).setDuration(150).start()  //CardWebView浮動效果
                         return true
                     }
 
@@ -212,7 +222,6 @@ class MainActivity : AppCompatActivity() {
                                     scaleX = 0.8f
                                     scaleY = 0.8f
                                     pivotY = motionEvent.rawY
-                                    pivotX = motionEvent.rawX
                                 }
                                 translationY = deltaY
                             }
